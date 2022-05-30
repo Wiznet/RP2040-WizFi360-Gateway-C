@@ -1,0 +1,27 @@
+[submodule "libraries/CMSIS-Driver"]
+	path = libraries/CMSIS-Driver
+	url = https://github.com/ARM-software/CMSIS-Driver.git
+[submodule "libraries/CMSIS-FreeRTOS"]
+	path = libraries/CMSIS-FreeRTOS
+	url = https://github.com/ARM-software/CMSIS-FreeRTOS.git
+[submodule "libraries/CMSIS_5"]
+	path = libraries/CMSIS_5
+	url = https://github.com/ARM-software/CMSIS_5.git
+[submodule "libraries/IoT_Socket"]
+	path = libraries/IoT_Socket
+	url = https://github.com/MDK-Packs/IoT_Socket.git
+[submodule "libraries/aws-iot-device-sdk-embedded-C"]
+	path = libraries/aws-iot-device-sdk-embedded-C
+	url = https://github.com/aws/aws-iot-device-sdk-embedded-C.git
+[submodule "libraries/mbedtls"]
+	path = libraries/mbedtls
+	url = https://github.com/Mbed-TLS/mbedtls.git
+[submodule "libraries/pico-extras"]
+	path = libraries/pico-extras
+	url = https://github.com/raspberrypi/pico-extras.git
+[submodule "libraries/pico-sdk"]
+	path = libraries/pico-sdk
+	url = https://github.com/raspberrypi/pico-sdk.git
+[submodule "libraries/ioLibrary_Driver"]
+	path = libraries/ioLibrary_Driver
+	url = https://github.com/Wiznet/ioLibrary_Driver.git
