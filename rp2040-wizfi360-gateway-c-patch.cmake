@@ -5,25 +5,25 @@ cmake_minimum_required(VERSION 3.12)
 find_package(Git)
 
 if(NOT Git_FOUND)
-	message(FATAL_ERROR "Could not find 'git' tool for WIZFI360-EVB-PICO-C patching")
+	message(FATAL_ERROR "Could not find 'git' tool for RP2040-WizFi360-Gateway-C patching")
 endif()
 
-message("WIZFI360-EVB-PICO-C patch utils found")
+message("RP2040-WizFi360-Gateway-C patch utils found")
 
-set(WIZFI360_EVB_PICO_AWS_C_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-set(AWS_IOT_DEVICE_SDK_EMBEDDED_C_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/aws-iot-device-sdk-embedded-C")
-set(AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/aws-iot-device-sdk-embedded-C/libraries/standard/coreHTTP")
-set(AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREMQTT_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/aws-iot-device-sdk-embedded-C/libraries/standard/coreMQTT")
-set(AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_HTTP_PARSER_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/aws-iot-device-sdk-embedded-C/libraries/standard/coreHTTP/source/dependency/3rdparty/http_parser")
-set(CMSIS_5_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/CMSIS_5")
-set(CMSIS_DRIVER_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/CMSIS-Driver")
-set(CMSIS_FREERTOS_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/CMSIS-FreeRTOS")
-set(IOT_SOCKET_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/IoT_Socket")
-set(MBEDTLS_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/CMSIS-Driver")
-set(PICO_EXTRAS_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/pico-extras")
-set(PICO_SDK_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/pico-sdk")
-set(PICO_SDK_TINYUSB_SRC_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/libraries/lib/tinyusb")
-set(WIZFI360_EVB_PICO_AWS_C_PATCH_DIR "${WIZFI360_EVB_PICO_AWS_C_SRC_DIR}/patches")
+set(RP2040_WIFI360_GATEWAY_C_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(AWS_IOT_DEVICE_SDK_EMBEDDED_C_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/aws-iot-device-sdk-embedded-C")
+set(AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/aws-iot-device-sdk-embedded-C/libraries/standard/coreHTTP")
+set(AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREMQTT_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/aws-iot-device-sdk-embedded-C/libraries/standard/coreMQTT")
+set(AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_HTTP_PARSER_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/aws-iot-device-sdk-embedded-C/libraries/standard/coreHTTP/source/dependency/3rdparty/http_parser")
+set(CMSIS_5_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/CMSIS_5")
+set(CMSIS_DRIVER_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/CMSIS-Driver")
+set(CMSIS_FREERTOS_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/CMSIS-FreeRTOS")
+set(IOT_SOCKET_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/IoT_Socket")
+set(MBEDTLS_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/CMSIS-Driver")
+set(PICO_EXTRAS_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/pico-extras")
+set(PICO_SDK_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/pico-sdk")
+set(PICO_SDK_TINYUSB_SRC_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/libraries/lib/tinyusb")
+set(RP2040_WIFI360_GATEWAY_C_PATCH_DIR "${RP2040_WIFI360_GATEWAY_C_SRC_DIR}/patches")
 
 # Delete untracked files in aws-iot-device-sdk-embedded-C
 if(EXISTS "${AWS_IOT_DEVICE_SDK_EMBEDDED_C_SRC_DIR}/.git")
@@ -89,7 +89,7 @@ if(EXISTS "${PICO_SDK_SRC_DIR}/.git")
 	message("pico-sdk cleaned")
 endif()
 
-execute_process(COMMAND ${GIT_EXECUTABLE} -C ${WIZFI360_EVB_PICO_AWS_C_SRC_DIR} submodule update --init)
+execute_process(COMMAND ${GIT_EXECUTABLE} -C ${RP2040_WIFI360_GATEWAY_C_SRC_DIR} submodule update --init)
 
 # Delete untracked files in coreHTTP
 if(EXISTS "${AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_SRC_DIR}/.git")
@@ -134,7 +134,7 @@ execute_process(COMMAND ${GIT_EXECUTABLE} -C ${PICO_SDK_SRC_DIR} submodule updat
 message("submodules CMSIS-FreeRTOS initialised")
  
 file(GLOB CMSIS_FREERTOS_PATCHES
-	"${WIZFI360_EVB_PICO_AWS_C_PATCH_DIR}/01_cmsis_freertos_cmsis_os2.patch"
+	"${{RP2040_WIFI360_GATEWAY_C_PATCH_DIR}/01_cmsis_freertos_cmsis_os2.patch"
 	)
 
 foreach(CMSIS_FREERTOS_PATCHES IN LISTS CMSIS_FREERTOS_PATCHES)
@@ -149,7 +149,7 @@ endforeach()
 message("submodules aws-iot-device-sdk-embedded-C coreHTTP initialised")
 
 file(GLOB AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_PATCHES 
-	"${WIZFI360_EVB_PICO_AWS_C_PATCH_DIR}/02_aws_iot_device_sdk_embedded_c_corehttp_network_interface.patch"
+	"${{RP2040_WIFI360_GATEWAY_C_PATCH_DIR}/02_aws_iot_device_sdk_embedded_c_corehttp_network_interface.patch"
 	)
 
 foreach(AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_PATCH IN LISTS AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_PATCHES)
@@ -157,5 +157,20 @@ foreach(AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_PATCH IN LISTS AWS_IOT_DEVICE_SDK
 	execute_process(
 		COMMAND ${GIT_EXECUTABLE} apply --ignore-whitespace ${AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_PATCH}
 		WORKING_DIRECTORY ${AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_SRC_DIR}
+	)
+endforeach()
+
+# ARM CMSIS WIFI Driver patch
+message("submodules WiFi WizFi360 driver initialised")
+
+file(GLOB CMSIS_DRIVER_WIFI_WIZFI360_PATCHES 
+	"${{RP2040_WIFI360_GATEWAY_C_PATCH_DIR}/03_wifi_wizfi360_added_func_for_server.patch"
+	)
+
+foreach(CMSIS_DRIVER_WIFI_WIZFI360_PATCH IN LISTS CMSIS_DRIVER_WIFI_WIZFI360_PATCHES)
+	message("Running patch ${CMSIS_DRIVER_WIFI_WIZFI360_PATCH}")
+	execute_process(
+		COMMAND ${GIT_EXECUTABLE} apply --ignore-whitespace ${CMSIS_DRIVER_WIFI_WIZFI360_PATCH}
+		WORKING_DIRECTORY ${CMSIS_DRIVER_SRC_DIR}
 	)
 endforeach()

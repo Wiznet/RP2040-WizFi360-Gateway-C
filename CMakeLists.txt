@@ -7,7 +7,7 @@ if(NOT DEFINED PICO_SDK_PATH)
     message(STATUS "PICO_SDK_PATH = ${PICO_SDK_PATH}")
 endif()
 
-#include(rp2040-wizfi360-gateway-c-patch.cmake)
+include(rp2040-wizfi360-gateway-c-patch.cmake)
 include(pico_sdk_import.cmake)
 include(rp2040-wizfi360-gateway-c_sdk_version.cmake)
 
