@@ -60,6 +60,7 @@ Libraries are located in the '**RP2040-WizFi360-Gateway-C/libraries/**' director
 - [**CMSIS-Driver**][link-cmsis-driver]
 - [**CMSIS-FreeRTOS**][link-cmsis-freertos]
 - [**IoT_Socket**][link-iot_socket]
+- [**ioLibrary_Driver**][link-iolibrary_driver]
 - [**mbedtls**][link-mbedtls]
 - [**aws-iot-device-sdk-embedded-C**][link-aws-iot-device-sdk-embedded-c]
 - [**pico-sdk**][link-pico-sdk]
@@ -70,6 +71,7 @@ If you want to modify the code that MCU-dependent and use a MCU other than **RP2
 - [**FreeRTOS-Kernel**][link-port_freertos-kernel]
 - [**RTE**][link-port_rte]
 - [**WizFi360**][link-port_wizfi360]
+- [**ioLibrary_Driver**][link-port_iolibrary_driver]
 - [**mbedtls**][link-port_mbedtls]
 - [**aws-iot-device-sdk-embedded-C**][link-port_aws_iot_device_sdk_embedded_c]
 - [**timer**][link-port_timer]
@@ -106,7 +108,7 @@ With Visual Studio Code, each library set as a submodule is automatically patche
 ```cpp
 /* Change directory */
 // change to the 'CMSIS-FreeRTOS' library directory
-cd [user path]/RP2040-HAT-C/libraries/CMSIS-FreeRTOS
+cd [user path]/RP2040-WizFi360-Gateway-C/libraries/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source
 
 // e.g.
 cd D:/RP2040/RP2040-WizFi360-Gateway-C/libraries/CMSIS-FreeRTOS/CMSIS/RTOS2/FreeRTOS/Source
@@ -129,9 +131,22 @@ cd D:/RP2040/RP2040-WizFi360-Gateway-C/libraries/aws-iot-device-sdk-embedded-C/l
 git apply --ignore-whitespace ../../../../../patches/02_aws_iot_device_sdk_embedded_c_corehttp_network_interface.patch
 ```
 
+- CMSIS-DRIVER
+
+```cpp
+/* Change directory */
+// change to the 'coreHTTP' library directory inside the 'aws-iot-device-sdk-embedded-C' library directory.
+cd [user path]/RP2040-WizFi360-Gateway-C/libraries/CMSIS-DRIVER
+
+// e.g.
+cd D:/RP2040/RP2040-WizFi360-Gateway-C/libraries/CMSIS-DRIVER
+
+/* Patch */
+git apply --ignore-whitespace ../../patches/03_wifi_wizfi360_added_func_for_server.patch
+```
 3. Test
 
-Please refer to 'README.md' in each example directory to find detail guide for testing WizFi360 AWS IoT examples.
+Please refer to 'README.md' in each example directory to find detail guide for testing RP2040-WizFi360-Gateway-C examples.
 
 
 
@@ -155,8 +170,10 @@ Link
 [link-cmsis-driver]: https://github.com/ARM-software/CMSIS-Driver
 [link-cmsis-freertos]: https://github.com/ARM-software/CMSIS-FreeRTOS
 [link-iot_socket]: https://github.com/MDK-Packs/IoT_Socket
+[link-iolibrary_driver]: https://github.com/Wiznet/ioLibrary_Driver
 [link-mbedtls]: https://github.com/ARMmbed/mbedtls
 [link-aws-iot-device-sdk-embedded-c]: https://github.com/aws/aws-iot-device-sdk-embedded-C
+[link-port_iolibrary_driver]: https://github.com/Wiznet/RP2040-HAT-AWS-C/tree/main/port/ioLibrary_Driver
 [link-pico-sdk]: https://github.com/raspberrypi/pico-sdk
 [link-pico-extras]: https://github.com/raspberrypi/pico-extras
 [link-port_freertos-kernel]: https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/tree/main/port/FreeRTOS-Kernel

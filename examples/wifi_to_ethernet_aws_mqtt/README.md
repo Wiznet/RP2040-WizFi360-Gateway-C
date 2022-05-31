@@ -117,7 +117,9 @@ uint8_t mqtt_private_key[] =
 
 ![][link-subscribe_to_publish_topic_and_receive_publish_message_through_test_function]
 
+6. If WizFi360-mini or WizFi360-EVB-Shield client(station) connected to PC is connected normally to RP2040-WizFi360-Gateway, you can see Wi-Fi connection logs on your terminal and you can operate readily WizFi360(client) by terminal tool. Refer to the below.
 
+![][link-wifi360_to_gateway_connect_send_receive]
 
 
 <!--
@@ -134,3 +136,4 @@ Link
 [link-subscribe_to_publish_topic_and_receive_publish_message_through_test_function]: https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/blob/main/static/images/wifi_to_ethernet_aws_mqtt/subscribe_to_publish_topic_and_receive_publish_message_through_test_function.png
 [link-publish_message_through_test_function]:https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/blob/main/static/images/wifi_to_ethernet_aws_mqtt/publish_message_through_test_function.png
 [link-receive_message_about_subcribe_topic]:https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/blob/main/static/images/wifi_to_ethernet_aws_mqtt/receive_message_about_subscribe_topic.png
+[link-wifi360_to_gateway_connect_send_receive]:https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/blob/main/static/images/wifi_to_ethernet_aws_mqtt/wifi360-to-Gateway-connect-send-receive.png
