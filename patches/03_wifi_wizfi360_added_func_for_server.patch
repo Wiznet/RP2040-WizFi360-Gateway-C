@@ -1,104 +1,125 @@
+diff --git a/WiFi/WizFi360/BufList/BufList.c b/WiFi/WizFi360/BufList/BufList.c
+index 0069c62..b659937 100644
+--- a/WiFi/WizFi360/BufList/BufList.c
++++ b/WiFi/WizFi360/BufList/BufList.c
+@@ -738,7 +738,7 @@ int32_t BufFindByte (uint8_t data, BUF_LIST *p) {
+ 
+ /*
+   Find the first occurence of a data sequence in the list buffer and return its offset from current position.
+-  
++
+   num   number of bytes from data to compare
+ */
+ int32_t BufFind (const uint8_t *data, uint32_t num, BUF_LIST *p) {
+@@ -809,7 +809,7 @@ int32_t BufFind (const uint8_t *data, uint32_t num, BUF_LIST *p) {
+ 
+ /*
+   Compare string with buffered data
+-  
++
+   \note Does not move buffer pointers
+ */
+ int32_t BufCompareString (const char *string, uint32_t offs, BUF_LIST *p) {
 diff --git a/WiFi/WizFi360/WiFi_WizFi360.c b/WiFi/WizFi360/WiFi_WizFi360.c
-index 714c233..9ae7f6f 100644
+index 714c233..bb49db9 100644
 --- a/WiFi/WizFi360/WiFi_WizFi360.c
 +++ b/WiFi/WizFi360/WiFi_WizFi360.c
-@@ -53,6 +53,21 @@
+@@ -53,6 +53,19 @@
  #include "WiFi_WizFi360.h"
  #include "WiFi_WizFi360_Os.h"
  
 +
 +/* ------------------------------------------------------------------------
-+ * Wizent added
++ * WizFi360 added for IoT Devices
 + * Station Connection Event Delcaration
 + * : to update/delete Mac Address for distingishing IoT Devices
-+ * ------------------------------------------------------------------------ */
-+void update_connected_mac(uint8_t macAddr[6]);
-+void update_linked_mac(int clientSock);
++ * -----------------------------------------------------------------------*/
++void update_connected_macIp(uint8_t macAddr[6], uint8_t ipAddr[4]);
++void update_linked_mac(void);
 +int update_unliked_mac(uint8_t macAddr[6]);
-+
-+
-+uint8_t g_conn_mac[6] = {0, };	  // Station's mac addr connected to AP
-+uint8_t g_link_mac[5][6] = {0, }; // Client's mac addr connected to Server, [backlog is max 4]x[mac address size]
-+/* End of Wizent added--------------------------------------------------------*/
++CONNECTED_MAC_IP_s ConnSta[4];  // Station's mac addr connected to AP
++uint8_t LinkedMac[5][6] = {0, }; // Client's mac addr connected to Server, [backlog is max 4]x[mac address size]
++/* End of Wizent added----------------------------------------------------*/
 +
  /* Driver version */
  #define ARM_WIFI_DRV_VERSION ARM_DRIVER_VERSION_MAJOR_MINOR(1, 8)
  
-@@ -61,8 +76,11 @@
+@@ -60,9 +73,14 @@
+ 
  /* Number of supported simultaneus connections */
  #define WIFI_SOCKET_NUM         5
- 
+-
++#define WIZFI360_FEATURE
++#define WIZFI360_CMSIS_FIX      0
++#define WIZFI360_CMSIS_ADD      1
 +/*
-+*  Wizent: modified to reference for Server Application
-+*  Origin code: static WIFI_SOCKET Socket[WIFI_SOCKET_NUM]; */
++*  WizFi360: modified to reference for Server Application
++*  Origin: static WIFI_SOCKET Socket[WIFI_SOCKET_NUM]; */
  /* Array of sockets */
 -static WIFI_SOCKET Socket[WIFI_SOCKET_NUM];
-+WIFI_SOCKET Socket[WIFI_SOCKET_NUM]; 
++WIFI_SOCKET Socket[WIFI_SOCKET_NUM];
  
  /* Driver control block */
  static WIFI_CTRL  WIFI_Ctrl;
-@@ -272,6 +290,7 @@ void AT_Notify (uint32_t event, void *arg) {
+@@ -95,7 +113,13 @@ void AT_Notify (uint32_t event, void *arg) {
+   static uint8_t  rx_sock;
+   static uint32_t rx_num;
+   uint32_t *u32;
++#ifdef WIZFI360_FEATURE
++  uint8_t ip[5] = {0xFF, };
++  uint8_t mac[7]= {0xFF, };
++#else
++  uint8_t ip[4];
+   uint8_t mac[6];
++#endif
+   int32_t ex;
+   uint8_t  n;
+   uint32_t conn_id, len;
+@@ -272,6 +296,7 @@ void AT_Notify (uint32_t event, void *arg) {
        ex = AT_Resp_CtrlConn (&conn_id);
  
        if (ex == 0) {
-+        //Wiznet, NOT use SYSMSG_CUR => <link_id>, CONNECT
++        //WizFi360, NOT use SYSMSG_CUR => use <link_id>, CONNECT
          /* Set connection id as used */
          ConnId_Accept (conn_id);
  
-@@ -300,7 +319,23 @@ void AT_Notify (uint32_t event, void *arg) {
-               /* Set pointer to server socket */
-               sock = &Socket[n];
- 
-+              /*After Initialized
-+                socket[0].state is SOCKET_STATE_SERVER
-+                socket[1].state is SOCKET_STATE_LISTEN
-+                socket[2].state is SOCKET_STATE_LISTEN
-+                socket[3].state is SOCKET_STATE_LISTEN
-+                socket[4].state is SOCKET_STATE_LISTEN
-+
-+                After 1 client connected
-+                socket[0].state is SOCKET_STATE_SERVER
-+                socket[1].state is SOCKET_STATE_CONNECTED
-+                socket[2].state is SOCKET_STATE_LISTEN
-+                socket[3].state is SOCKET_STATE_LISTEN
-+                socket[4].state is SOCKET_STATE_LISTEN */
-+                          
-               /* Find available backlog socket */
-+              //reason: AT_NOTIFY_CONNECTION_OPEN
-+              //bug or need to optimize: Second Client <link_id>, CPNNECT Can't update conn_id
-               do {
-                 n = Socket[n].backlog;
- 
-@@ -365,14 +400,17 @@ void AT_Notify (uint32_t event, void *arg) {
+@@ -365,14 +390,21 @@ void AT_Notify (uint32_t event, void *arg) {
    else if (event == AT_NOTIFY_STATION_CONNECTED) {
      /* Station connects to the local AP */
      ex = AT_Resp_StaMac (mac);
-+    /* Wizent modified, to update client's mac addr notifying */
-+    update_connected_mac(mac);
-+    //pCtrl->cb_event (ARM_WIFI_EVENT_AP_CONNECT, mac);
- 
+-
 -    pCtrl->cb_event (ARM_WIFI_EVENT_AP_CONNECT, mac);
++    //pCtrl->cb_event (ARM_WIFI_EVENT_AP_CONNECT, mac);
    }
    else if (event == AT_NOTIFY_STATION_DISCONNECTED) {
      /* Station disconnects from the local AP */
-+    /* Wizent modified, to update client's mac addr notifying */
      ex = AT_Resp_StaMac (mac);
 -
 -    pCtrl->cb_event (ARM_WIFI_EVENT_AP_DISCONNECT, mac);
-+    update_unliked_mac(mac);	
++    /* WizFi360, to update Station's mac addr notifying */
++    update_disconnected_macIp(mac);
 +    //pCtrl->cb_event (ARM_WIFI_EVENT_AP_DISCONNECT, mac);
++  }
++  /* WizFi360, to update connected station's ip and  mac addr notifying */
++  else if (event == AT_NOTIFY_DIST_STA_MAC_IP) {
++    /* Station connects to the local AP */
++    ex = AT_Resp_StaMacIp(mac, ip);
++    update_connected_macIp(mac, ip);
++    //pCtrl->cb_event (AT_NOTIFY_DIST_STA_MAC_IP, mac);
    }
    else if (event == AT_NOTIFY_CONNECTED) {
      /* Local station connected to an AP */
-@@ -791,6 +829,7 @@ static int32_t ARM_WIFI_PowerControl (ARM_POWER_STATE state) {
+@@ -791,7 +823,7 @@ static int32_t ARM_WIFI_PowerControl (ARM_POWER_STATE state) {
            if (ex == 0) {
              /* Configure system messages */
              ex = AT_Cmd_SysMessages (3U);
-+            //Wiznet, AT+SYSMSG_CUR is Not now supported on WizF360
- 
+-
++            //WizFi360, AT+SYSMSG_CUR is Not now supported on WizF360
              if (ex == 0) {
                /* Wait until response arrives */
-@@ -1773,7 +1812,8 @@ static int32_t ARM_WIFI_Activate (uint32_t interface, const ARM_WIFI_CONFIG_t *c
+               ex = WiFi_Wait (WIFI_WAIT_RESP_GENERIC, WIFI_RESP_TIMEOUT);
+
+@@ -1773,7 +1805,8 @@ static int32_t ARM_WIFI_Activate (uint32_t interface, const ARM_WIFI_CONFIG_t *c
                ap_cfg.ecn = config->security;
  
                /* Optional parameters, set default values */
@@ -108,37 +129,136 @@ index 714c233..9ae7f6f 100644
                ap_cfg.ssid_hide = 0; //(0:default)
  
                ex = AT_Cmd_ConfigureAP (AT_CMODE_SET, &ap_cfg);
-@@ -1781,7 +1821,9 @@ static int32_t ARM_WIFI_Activate (uint32_t interface, const ARM_WIFI_CONFIG_t *c
+@@ -1781,7 +1814,9 @@ static int32_t ARM_WIFI_Activate (uint32_t interface, const ARM_WIFI_CONFIG_t *c
  
              case 2:
                /* Set access point MAC (must be different from station) */
 -              ex = AT_Cmd_AccessPointMAC (AT_CMODE_SET, pCtrl->options.ap_mac);
-+              //Wiznet,
++              //WizFi360,
 +              //No need to setup Mac addr, if you need it, you can do this
 +              //ex = AT_Cmd_AccessPointMAC (AT_CMODE_SET, pCtrl->options.ap_mac);
                break;
  
              case 3:
-@@ -4645,3 +4687,47 @@ static void ConnId_Free  (uint32_t conn_id) {
+
+@@ -2560,6 +2595,17 @@ static int32_t ARM_WIFI_SocketAccept (int32_t socket, uint8_t *ip, uint32_t *ip_
+                       Socket[n].l_port = conn.local_port;
+                     }
+                   }
++#if WIZFI360_CMSIS_ADD
++/* 
++* WizFi360 modified 
++* ARM WIFI DRIVER Bug Fix.
++* to update multii client connection
++*/
++                  if (ex == 1)
++				          {
++				            n++;
++				          }
++#endif
+                 }
+                 while (ex > 0);
+               }
+@@ -2579,13 +2625,21 @@ static int32_t ARM_WIFI_SocketAccept (int32_t socket, uint8_t *ip, uint32_t *ip_
+ 
+           /* Return socket number */
+           rval = n;
+-
++#if WIZFI360_CMSIS_FIX
++/*
++* WizFi360 modified:
++* ARM WIFI DRIVER Bug Fix.
++* Max 4 client supporting, backlog value doesn't amtch correct value
++* It affected some client connection try and update Socket[n]'s data value
++* Especially, client socket state changes from LISTEN to CONNECT
++*/
+           /* Update backlog, put current socket to the end of list */
+           while (Socket[n].backlog != sock->backlog) {
+             n = Socket[n].backlog;
+           }
+           Socket[n].backlog    = (uint8_t)rval;
+           Socket[rval].backlog = sock->backlog;
++#endif
+         }
+         else {
+           /* No connection to accept */
+
+@@ -4645,3 +4699,102 @@ static void ConnId_Free  (uint32_t conn_id) {
  static void ConnId_Accept (uint32_t conn_id) {
    pCtrl->conn_id |= (1U << conn_id);
  }
 +
 +
 +/* -------------------------------------------------------------------
-+ * Wizent added
-+ * Station Connection Event Function
-+ * : to update/delete Mac Address for distingishing IoT Devices
-+ * ------------------------------------------------------------------
-+ */
-+void update_connected_mac(uint8_t macAddr[6])
++ * WizFi360 added for IoT
++ * Station Connection to AP Event Function
++ * : to update/delete Mac Address to distingish IoT Devices
++ * ------------------------------------------------------------------ */
++void update_connected_macIp(uint8_t macAddr[6], uint8_t ipAddr[4])
 +{
-+  memcpy(g_conn_mac, macAddr, 6U);
++  uint8_t i, got_idx = 0;
++
++  for(i=0 ;i<5 ;i++)
++  {
++    if(ConnSta[i].conn_mac[0] == 0x00)
++    {
++      //memcpy(g_conn_mac, macAddr, 6U);
++      memcpy(ConnSta[i].conn_mac , macAddr, 6U);
++      memcpy(ConnSta[i].conn_ip , ipAddr, 4U);
++      got_idx = 1;
++      break;
++    }
++  }
++  if(got_idx != 1)
++  {
++    printf("Connectd Station DB Full: NO AVAILABLE CONNECT DB ####\r\n");
++  }
++
 +}
 +
-+void update_linked_mac(int clientSock)
++int update_disconnected_macIp(uint8_t macAddr[6])
 +{
-+  memcpy(g_link_mac[clientSock], g_conn_mac, sizeof(g_conn_mac));
++  int i, j, c = 0;
++
++  for(i=0;i<5;i++)
++  {
++    c = 0;
++    for(j=0; j<6; j++)
++    {
++      if(ConnSta[i].conn_mac[j] != macAddr[j])
++      {
++        break;
++      }
++      else
++      {
++        c++;
++        if (c >= 5)
++        { 
++          memset(ConnSta[i].conn_mac, 0x00, 6U);
++          memset(ConnSta[i].conn_ip, 0x00, 4U);
++        }
++        continue;
++      }
++    }
++  }
++ }
++
++/* API for Server Application: to Map Physical Connected Staion's MAC addr and Link Connected Client's Ip */
++void update_linked_mac (void)
++{
++  uint8_t i, j;
++  for(i = 1; i < 5; i++)
++  {
++    {
++      for(j = 0; j < 4; j++)
++      {
++        if(Socket[i].r_ip[3] == ConnSta[j].conn_ip[3])
++        {
++           memcpy(LinkedMac[i], ConnSta[j].conn_mac, sizeof(ConnSta[j].conn_mac));
++        }
++      }
++    }
++  }
 +}
 +
 +int update_unliked_mac(uint8_t macAddr[6])
@@ -149,17 +269,16 @@ index 714c233..9ae7f6f 100644
 +    c = 0;
 +    for(j=0; j<6; j++)
 +    {
-+      if(g_link_mac[i][j] != macAddr[j])
++      if(LinkedMac[i][j] != macAddr[j])
 +      {
 +      	break;
 +      }
-+      else 
++      else
 +      {
 +        c++;
 +        if (c >= 5)
 +        {
-+        	memset(g_link_mac[i], 0x00, 6U);
-+        	//return 1;
++        	memset(LinkedMac[i], 0x00, 6U);
 +        }
 +      	continue;
 +      }
@@ -168,7 +287,7 @@ index 714c233..9ae7f6f 100644
 + }
 +
 diff --git a/WiFi/WizFi360/WiFi_WizFi360.h b/WiFi/WizFi360/WiFi_WizFi360.h
-index ea0dc45..d9d05ff 100644
+index ea0dc45..0ccb570 100644
 --- a/WiFi/WizFi360/WiFi_WizFi360.h
 +++ b/WiFi/WizFi360/WiFi_WizFi360.h
 @@ -41,7 +41,8 @@
@@ -176,54 +295,279 @@ index ea0dc45..d9d05ff 100644
  /* Connection open timeout [ms] (default) */
  #ifndef WIFI_CONNOPEN_TIMEOUT
 -#define WIFI_CONNOPEN_TIMEOUT       (20000)
-+//#define WIFI_CONNOPEN_TIMEOUT       (20000)    //Wiznet, modified
++//#define WIFI_CONNOPEN_TIMEOUT       (20000)    //WizFi360, modified
 +#define WIFI_CONNOPEN_TIMEOUT       (10000)
  #endif
  
  /* Socket accept timeout */
-@@ -56,7 +57,9 @@
+@@ -52,11 +53,13 @@
+ /* WiFi thread pooling interval [ms] */
+ #ifndef WIFI_THREAD_POOLING_TIMEOUT
+ #define WIFI_THREAD_POOLING_TIMEOUT (20)
+-#endif 
++#endif
  
  /* Access point default channel (used when channel not specified in Activate) */
  #ifndef WIFI_AP_CHANNEL
 -#define WIFI_AP_CHANNEL             (2)
-+//#define WIFI_AP_CHANNEL             (2)    //Wiznet, modified
++//#define WIFI_AP_CHANNEL             (2)    //WizFi360, modified
 +#define WIFI_AP_CHANNEL             (1)
 +
  #endif
  
  /* AT response echo enable/disable */
+@@ -144,6 +147,13 @@ typedef struct {
+   uint32_t ap_dhcp_lease;
+ } WIFI_OPTIONS;
+ 
++/* WizFi360 added to handle Connected Stations and Link connected clients Information */
++typedef struct {
++  uint8_t conn_mac[6];
++  uint8_t conn_ip[4];
++} CONNECTED_MAC_IP_s;
++
++
+ /* WIFI driver state flags */
+ #define WIFI_FLAGS_INIT               (1U << 0)
+ #define WIFI_FLAGS_POWER              (1U << 1)
+@@ -216,7 +226,7 @@ static int32_t  ARM_WIFI_Ping (const uint8_t *ip, uint32_t ip_len);
+ 
+ /* Static helpers */
+ static void     WiFi_Thread        (void *arg) __attribute__((noreturn));
+-static int32_t  WiFi_Wait          (uint32_t event, uint32_t timeout);
++//static int32_t  WiFi_Wait          (uint32_t event, uint32_t timeout);  /* to use at Get_Stations_ListIP() */
+ static int32_t  ResetModule        (void);
+ static int32_t  SetupCommunication (void);
+ static int32_t  LoadOptions        (void);
 diff --git a/WiFi/WizFi360/WizFi360.c b/WiFi/WizFi360/WizFi360.c
-index 270d1cb..4a4f5b8 100644
+index 270d1cb..14d4ef1 100644
 --- a/WiFi/WizFi360/WizFi360.c
 +++ b/WiFi/WizFi360/WizFi360.c
-@@ -102,10 +102,14 @@ static STRING_LIST_t List_PlusResp[] = {
+@@ -31,6 +31,10 @@
+ 
+ #include "WiFi_WizFi360_Os.h"
+ 
++
++/* added to support WizFi360 Feuture */
++#define WIZFI360_FEATURE
++
+ /* Control block */
+ static AT_PARSER_HANDLE AT_Cb;
+ 
+@@ -60,6 +64,8 @@ static const char *CmdString (uint8_t cmd);
+ static int32_t     CmdSetWFE (uint8_t cmd);
+ static void        AT_Parse_IP  (char *buf, uint8_t ip[]);
+ static void        AT_Parse_MAC (char *buf, uint8_t mac[]);
++static void        AT_Parse_IP_2 (char *buf, uint8_t ip[]);  /* to handle ARM CMSIS's null string */
++static void        AT_Parse_MAC_2(char *buf, uint8_t mac[]);/* to handle ARM CMSIS's null string */
+ 
+ 
+ /* Command list (see also CommandCode_t) */
+@@ -102,10 +108,15 @@ static STRING_LIST_t List_PlusResp[] = {
    { "CIPSERVERMAXCONN" },
    { "RST"              },
    { "GMR"              },
 -  { "LINK_CONN"        },
-+  //{ "LINK_CONN"        }, //Wiznet: WizFi360 use CONNECT
++  //{ "LINK_CONN"        }, //WizFi360: use CONNECT
 +  { "CONNECT"          },
    { "STA_CONNECTED"    },
    { "STA_DISCONNECTED" },
    { "SLEEP"            },
 +
-+  { "RESTORE"          },   //Wiznet: added for Factory Reset WizFi360
++  { "DIST_STA_IP"      },   //WizFi360: added to Find Out station's <mac>,<ip>
++  { "RESTORE"          },   //WizFi360: added to support Factory Reset
 +
    { "E"                },
    { ""                 }
  };
-@@ -142,10 +146,13 @@ typedef enum {
+@@ -142,10 +153,14 @@ typedef enum {
    CMD_CIPSERVERMAXCONN,
    CMD_RST,
    CMD_GMR,
 -  CMD_LINK_CONN,
-+  CMD_LINK_CONN,          //Wiznet: value is 30, WizFi360 use CONNECT
++  CMD_LINK_CONN,          //WizFi360: use "CONNECT"
    CMD_STA_CONNECTED,
    CMD_STA_DISCONNECTED,
    CMD_SLEEP,
 +
-+  CMD_RESTORE,            //Wiznet: added WizFi360 Factory Reset
-+  
++  CMD_DIST_STA_IP,        //WizFi360: distribute Connected Station Info
++  CMD_RESTORE,            //WizFi360: Factory Reset
++
    CMD_ECHO        = 0xFD, /* Command Echo                 */
    CMD_TEST        = 0xFE, /* AT startup (empty command)   */
    CMD_UNKNOWN     = 0xFF  /* Unknown or unhandled command */
+ 
+@@ -460,6 +476,13 @@ void AT_Parser_Execute (void) {
+             /* Station disconnected from local AP (+STA_DISCONNECTED:<sta_mac>) */
+             AT_Notify (AT_NOTIFY_STATION_DISCONNECTED, NULL);
+           }
++#ifdef WIZFI360_FEATURE
++          /* added for support WizFi360 FEATURE */
++          else if (pCb->resp_code == CMD_DIST_STA_IP) {
++            /* Station connected to local AP (+DIST_STA_IP:<sta_mac>,<sta_ip>) */
++            AT_Notify (AT_NOTIFY_DIST_STA_MAC_IP, NULL);
++          }
++#endif
+           else if (pCb->resp_code != CMD_UNKNOWN) {
+             /* Command response (+XXX in buffer) */
+             pCb->state = AT_STATE_ANALYZE;
+
+@@ -1326,6 +1353,56 @@ int32_t AT_Resp_StaMac (uint8_t mac[]) {
+   return (val);
+ }
+ 
++/**
++  Get +DIST_STA_IP response (mac, remote ip).
++
++  +DIST_STA_IP:<sta_mac>,<sta_ip>crlf
++*/
++int32_t AT_Resp_StaMacIp (uint8_t mac[], uint8_t ip[]) {
++  char    *p;
++  uint8_t  buf[32];
++  int32_t  val;
++  uint8_t  a;
++
++  a = 0U;
++
++  do {
++    /* Retrieve response argument */
++    val = GetRespArg (&buf[1], sizeof(buf)-1);
++
++    if (val < 0) {
++      break;
++    }
++
++    /* Ignore ':' delimiter */
++    if (val != 1) {
++      /* Set pointer to start of string */
++      p = (char *)&buf[0];
++
++      if (a == 0) {
++        /* Parse MAC string (xx:xx:xx:xx:xx:xx) */
++        AT_Parse_MAC_2(p, mac);
++      }
++      else {
++        /* Parse IP address (xxx.xxx.xxx.xxx) */
++        AT_Parse_IP_2(p, ip);
++      }
++
++      /* Increment number of arguments */
++      a++;
++    }
++  }
++  while (val != 2);
++
++  if (val < 0) {
++    val = -1;
++  } else {
++    val = 0;
++  }
++
++  return (val);
++}
++
+ /**
+   Get ERR_CODE:0x... response.
+ 
+@@ -2998,10 +3075,13 @@ int32_t AT_Resp_ListIP (uint8_t ip[], uint8_t mac[]) {
+   char *p;
+ 
+   a = 0U;
++  memset(ip, 0x00, sizeof(ip));
++  memset(mac, 0x00, sizeof(mac));
+ 
+   do {
+     /* Retrieve response argument */
+-    val = GetRespArg (&buf[1], sizeof(buf)-1);
++    //val = GetRespArg (&buf[1], sizeof(buf)-1);
++    val = GetRespArg (buf, sizeof(buf));
+ 
+     if (val < 0) {
+       break;
+@@ -3014,13 +3094,14 @@ int32_t AT_Resp_ListIP (uint8_t ip[], uint8_t mac[]) {
+ 
+       if (a == 0) {
+         /* Parse IP address (xxx.xxx.xxx.xxx) */
+-        AT_Parse_IP (p, ip);
++        //AT_Parse_IP (p, ip);        
++        AT_Parse_IP_2 (p, ip); //WizFi360: 2 offset because of two null char of CMSIS Driver, bug
+       }
+       else {
+         /* Parse MAC string (xx:xx:xx:xx:xx:xx) */
+-        AT_Parse_MAC (p, mac);
++        //AT_Parse_MAC (p, mac);
++        AT_Parse_MAC_2 (p, mac); //WizFi360: 2 offset because of two null char of CMSIS Driver, bug
+       }
+-
+       /* Increment number of arguments */
+       a++;
+     }
+ 
+@@ -3832,3 +3912,54 @@ static void AT_Parse_MAC (char *buf, uint8_t mac[]) {
+   mac[4] = (uint8_t)strtoul (&p[1], &p, 16);
+   mac[5] = (uint8_t)strtoul (&p[1], &p, 16);
+ }
++
++/* ------------------------------------------------------------------------- */
++
++/**
++  Parse IP address from string to byte value.
++*/
++static void AT_Parse_IP_2 (char *buf, uint8_t ip[]) {
++  char *p;
++  uint8_t offset = 2;
++
++  /* Set pointer to start of string */
++  p = (char *)&buf[0];
++  p += offset;
++
++  if (p[0] == '"') {
++    /* Strip out the first quotation mark */
++    p++;
++  }
++
++  /* Parse IP address (xxx.xxx.xxx.xxx or "xxx.xxx.xxx.xxx") */
++  ip[0] = (uint8_t)strtoul (&p[0], &p, 10);
++  ip[1] = (uint8_t)strtoul (&p[1], &p, 10);
++  ip[2] = (uint8_t)strtoul (&p[1], &p, 10);
++  ip[3] = (uint8_t)strtoul (&p[1], &p, 10);
++}
++
++/**
++  Parse MAC address from (hex) string to byte value.
++*/
++static void AT_Parse_MAC_2 (char *buf, uint8_t mac[]) {
++  char *p;
++  uint8_t offset = 2;
++
++  /* Set pointer to start of string */
++  p = (char *)&buf[0];
++  p += offset;
++
++  if (p[0] == '"') {
++    /* Strip out the first quotation mark */
++    p++;
++  }
++
++  /* Parse MAC address (xx:xx:xx:xx:xx:xx or "xx:xx:xx:xx:xx:xx") */
++  mac[0] = (uint8_t)strtoul (&p[0], &p, 16);
++  mac[1] = (uint8_t)strtoul (&p[1], &p, 16);
++  mac[2] = (uint8_t)strtoul (&p[1], &p, 16);
++  mac[3] = (uint8_t)strtoul (&p[1], &p, 16);
++  mac[4] = (uint8_t)strtoul (&p[1], &p, 16);
++  mac[5] = (uint8_t)strtoul (&p[1], &p, 16);
++}
++
+diff --git a/WiFi/WizFi360/WizFi360.h b/WiFi/WizFi360/WizFi360.h
+index 7960ffd..b84abe2 100644
+--- a/WiFi/WizFi360/WizFi360.h
++++ b/WiFi/WizFi360/WizFi360.h
+@@ -72,6 +72,8 @@
+ #define AT_NOTIFY_OUT_OF_MEMORY         13 /* Serial parser is out of memory        */
+ #define AT_NOTIFY_ERR_CODE              14 /* Received "ERR_CODE" response          */
+ #define AT_NOTIFY_READY                 15 /* The AT firmware is ready              */
++#define AT_NOTIFY_DIST_STA_MAC_IP       16 /* local AP notify Station's Mac and Ip  */ //WizFi360: added
++
+ 
+ /**
+   AT parser notify callback function.

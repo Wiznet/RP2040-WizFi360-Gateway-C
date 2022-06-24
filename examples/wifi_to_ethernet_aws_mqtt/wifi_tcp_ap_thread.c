@@ -10,7 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "port_common.h"
+//#include "port_common.h"
 #include "mqtt_transport_interface.h"
 #include "ssl_transport_interface.h"
 #include "timer_interface.h"
@@ -25,7 +25,7 @@
 
 /* Port */
 #define TARGET_PORT 6000
-
+#define CONNECTED 5
 
 /* ----------------------------------------------------------------------------------------------------
  * Variables
@@ -42,22 +42,22 @@ struct ThreadArgs
 	int clientSock;       //socket descriptor for client
 };
 
-/* global varialbe for client socket (index), shared with Ethernet MQTT buffer */\
+/* global varialbe for client socket (index), shared with Ethernet MQTT buffer */
 int g_clientSock = 0;
 
 /* Max Client Connection Limitaion is under 5 */
-static const int MAXPENDING = 4; 
+static const int MAXPENDING = 4;
 
 /* IOT device Data: only use TCP not MQTT */
 static uint8_t g_iot_rcv_buf[MQTT_BUF_MAX_SIZE] = { 0, };
 static uint8_t g_iot_trs_buf[MQTT_BUF_MAX_SIZE] = { 0, };
 
 /* External varialbles */
-extern WIFI_SOCKET Socket[];    //declared WiFi_WizFi360.c
-extern uint8_t Server_ip[4];    //declared wifi_socket_startup.c
-extern uint8_t g_mqtt_pub_msg_buf[MQTT_BUF_COUNT][MQTT_BUF_MAX_SIZE];    //declared aws_wifi_ethernet_mqtt.c
-extern uint8_t g_conn_mac[6];    // Station's mac addr connected to AP
-extern uint8_t g_link_mac[5][6]; //Client's mac addr connected to Server, [clients are max 4]x[mac address size]
+extern WIFI_SOCKET Socket[];    //declared at WiFi_WizFi360.c
+extern uint8_t Server_ip[4];    //declared at wifi_socket_startup.c
+extern uint8_t g_mqtt_pub_msg_buf[MQTT_BUF_COUNT][MQTT_BUF_MAX_SIZE];  //declared at aws_wifi_ethernet_mqtt.c
+extern uint8_t LinkedMac[5][6];  //Client's mac addr connected to Server, [clients are max 4]x[mac address size], index 0(for server) is not available to map socket index
+extern CONNECTED_MAC_IP_s ConnSta[];  //Connected Station's mac address, not a link connection
 
 
 /* ----------------------------------------------------------------------------------------------------
@@ -67,63 +67,66 @@ static void *ThreadHandleClient(void *arg);
 static void Handle_TCP_Client(int clientSock);
 static int Accept_TCP_Connection();
 static int Setup_TCPServer_Socket(const char *service);
-extern update_linked_mac(int socket);
+/*external function from CMSIS-Driver/WIFI/WizFi360 API for Application */
+extern update_linked_mac(void);
 
 void * WIFI_TCP_AP_thread()
 {
   int servSock, clientSock, ret, sockDsc;
   int arrThreadId[5]={0,};
   osThreadId_t id;
+  uint8_t ip[4], mac[6];
 
   servSock = Setup_TCPServer_Socket(TARGET_PORT);
   if(servSock < 0)
   {
   	printf("Setup_TCPServer_Socket failed\r\n");
   }
-  
+
   while(1)
   {
-    osDelay(1000);
+     /* Have to Optimize your Target System Spec. */
+    osDelay(2000);
+    
     WIFI_SOCKET *sock = &Socket[servSock];
     int n = sock->backlog;
 
     ret = iotSocketListen(servSock, MAXPENDING);
     if (ret < 0)
     {
-      printf("Server: iotSocketListen() doesn't exist, ret = %d\r\n", ret);
+      //printf("Server: iotSocketListen() doesn't exist, ret = %d\r\n", ret);
     }
 
-    /* WiFi_Wait(), until Someone Connects */
+    clientSock = -1;
     clientSock = Accept_TCP_Connection(servSock);
     if(clientSock >= 0)
     {
       printf("Accept_TCP_Connection(): clientSock is %d\r\n", clientSock);
 
-      /*	How to manange each socket's Recv and Send:
-       *	1. Connection Check each loop, Make thread Client Socket Id order
-      /*	2. Running time base, Not bad but needs tradeoff time and task priority */
-      //if clientSock is 3, clients exist 1 2 3 socket
-      for(sockDsc = 1; sockDsc < clientSock+1; sockDsc++)
+      /*	How to manange each socket's Recv and Send
+      /*	: Have to check connected state socket, needs tradeoff time and task priority */
+      for(sockDsc = 1; sockDsc < MAXPENDING+1; sockDsc++)
       {
-      	/* allocation memory for client process */
-      	struct ThreadArgs *threadArgs = (struct ThreadArgs *)malloc(sizeof(struct ThreadArgs));
-      	threadArgs->clientSock = sockDsc;			      
-
-      	id = NULL;
-      	g_clientSock = sockDsc;
-        
-      	/* create client thread for each Number of client socket descriptor */
-      	id = osThreadNew(ThreadHandleClient(threadArgs), NULL, &client_thread_attr);
-      	if(id == NULL)
-      	{
-      		printf("osThreadNew() Failed, client socket is %d\r\n", sockDsc);
-      	}
+        if((Socket[sockDsc].state == CONNECTED) && (Socket[sockDsc].r_ip[0] == 192)) //checking (Socket[sockDsc].r_ip[0] == 192) is for abnormal ip address string
+        {
+          /* allocation memory for client process */
+          struct ThreadArgs *threadArgs = (struct ThreadArgs *)malloc(sizeof(struct ThreadArgs));
+          threadArgs->clientSock = sockDsc;
+          id = NULL;
+        	g_clientSock = sockDsc;
+        	
+        	/* create client thread for each Number of client socket descriptor */
+          id = osThreadNew(ThreadHandleClient(threadArgs), NULL, &client_thread_attr);
+          if(id == NULL)
+          {
+          //printf("osThreadNew() None, client socket is %d\r\n", sockDsc);
+          }
+        }
       }
       clientSock = -1;
       //osThreadTerminate(id); //OS terminate this Thread when AT_Notify <link_id>, DISCONNECT
-    }		
+    }
   }
-	//iotSocketClose(clientSock); /*close when STA_DISCONNECTED, DISCONNECT */
 }
 
 /* Thread or Time Division Polling: Receive IoT Data and Send to Ethernet */
@@ -131,51 +134,51 @@ static void *ThreadHandleClient(void *threadArgs)
 {
   char txBuffer[20]="ACK\r\n";
   int numBytesRcv, numBytesSnd;
-  int clientSock;
-  int n = g_clientSock;
+  int clientSock, n;
   int pub_cnt = 0;
 
+  n = g_clientSock - 1; //buffer index
   /* give back thread resouces when run finishes */
   //pthread_detach(pthread_self());
 
   clientSock = ((struct ThreadArgs *)threadArgs)->clientSock;
 
   /* freeze memory by malloc() */
-  //free(threadArgs); 
+  free((struct ThreadArgs *)threadArgs);
 
+  /* init receive buffer from IoT devices */
   memset(g_iot_rcv_buf, 0x00, MQTT_BUF_MAX_SIZE);
 
   /* recieve client message */
   numBytesRcv = iotSocketRecv ((uint8_t)clientSock, g_iot_rcv_buf, MQTT_BUF_MAX_SIZE);
   if (numBytesRcv > 0)
-  {    
+  {
     printf("iotSocketRecv data is %s \r\n", g_iot_rcv_buf);
 
     /* Ethernet MQTT */
     sprintf(&g_mqtt_pub_msg_buf[n], "{\"mac\":\"%X:%X:%X:%X:%X:%X\", \"publish message\":\"%s\"}\n",\
-      g_link_mac[clientSock][0],g_link_mac[clientSock][1],g_link_mac[clientSock][2],\
-      g_link_mac[clientSock][3],g_link_mac[clientSock][4],g_link_mac[clientSock][5], g_iot_rcv_buf);
+      LinkedMac[clientSock][0],LinkedMac[clientSock][1],LinkedMac[clientSock][2],\
+      LinkedMac[clientSock][3],LinkedMac[clientSock][4],LinkedMac[clientSock][5], g_iot_rcv_buf);
   }
-  
   while(numBytesRcv > 0)
-  {	    
+  {
     /* Send ACK for Test while recieving end of data stream */
     numBytesSnd = iotSocketSend(clientSock, txBuffer, sizeof(txBuffer));
 
     /* check remained recieved data */
     numBytesRcv = iotSocketRecv((uint8_t)clientSock, g_iot_rcv_buf, MQTT_BUF_MAX_SIZE);
     if(numBytesRcv > 0)
-    {			
+    {
       printf("iotSocketRecv data is %s \r\n", g_iot_rcv_buf);
 
       /* Ethernet MQTT */
       sprintf(&g_mqtt_pub_msg_buf[n], "{\"mac\":\"%X:%X:%X:%X:%X:%X\", \"publish message\":\"%s\"}\n",\
-      	g_link_mac[clientSock][0],g_link_mac[clientSock][1],g_link_mac[clientSock][2],\
-      	g_link_mac[clientSock][3],g_link_mac[clientSock][4],g_link_mac[clientSock][5], g_iot_rcv_buf);
+      	LinkedMac[clientSock][0],LinkedMac[clientSock][1],LinkedMac[clientSock][2],\
+      	LinkedMac[clientSock][3],LinkedMac[clientSock][4],LinkedMac[clientSock][5], g_iot_rcv_buf);
     }
   }
-  /*close client socketwhen AT_Notify STA_DISCONNECTED and DISCONNECT */
-  //iotSocketClose(clientSock); 
+  /*close client socket when AT_Notify STA_DISCONNECTED and DISCONNECT */
+  //iotSocketClose(clientSock);
   //osThreadExit();
 
   return 0;
@@ -186,34 +189,33 @@ static void *ThreadHandleClient(void *threadArgs)
 static int Accept_TCP_Connection(int servSock)
 {
 	int clientSock, clientsockD, ret;
-	int timeOut = 10000;
+	int timeOut = 2000;
 
 	/* referencing extern WiFi_WizFi360 driver */
 	WIFI_SOCKET *sock = &Socket[servSock];
 	int n = sock->backlog;
 	int sockSize = sizeof(Socket[n].r_ip);
 	uint16_t localPort = Socket[n].l_port;
-  
-	//g_clientSock = n;   //for Ethenet Tx buffer index using socket number
 
 	printf("Accept_TCP_Connection() wait someone connect: backlog is %d\r\n", n);
-	
+
 	/* Wait client connection, get socket's link_id, ip and port */
-	clientSock = iotSocketAccept (servSock, (uint8_t *)sock->r_ip, &sockSize, &localPort);
+	clientSock = iotSocketAccept (servSock, NULL, NULL, NULL);
 	if (clientSock < 0)
 	{
-		printf("iotSocketAccept failed\r\n");
+		printf("iotSocketAccept None\r\n");
 	}
 	else
 	{
-	  for(clientsockD = 1; clientsockD < clientSock+1; clientsockD++)
+	  //for(clientsockD = 1; clientsockD < clientSock+1; clientsockD++)
+	  for(clientsockD = 1; clientsockD < MAXPENDING+1; clientsockD++)
 		{
 		  ret = iotSocketSetOpt ((uint8_t)clientsockD, IOT_SOCKET_SO_RCVTIMEO, &timeOut, sizeof(timeOut));
-      update_linked_mac(clientsockD);    //need to sophisticate mapping mac address to client socket
-    }
+    }    
+    update_linked_mac();  //mapping mac address to link connected client socket
 
     /* print Server and Client Socket information */
-   #if 0 
+   #if 0
 		printf("-------------------------------------------------------\r\n");
 		printf("#  Accept_TCP_Connection() client connection success  #\r\n");
 		printf("Socket Backlog = %d \r\n",sock->backlog);
@@ -254,26 +256,25 @@ static int Setup_TCPServer_Socket(const char *portNumber)
 	ret = iotSocketBind(servSock, Server_ip, sizeof(Server_ip), portNumber);
 	if (ret < 0)
 	{
-		printf("Server: iotSocketBind() failed, ret = %d\r\n", ret);
+		printf("Server: iotSocketBind() None, ret = %d\r\n", ret);
 	}
-	else 
+	else
 	{
 	  //Under line comments are normally used technique
-	  
+
 		/* success of bind and wait */
     //Realistically, wait client connection and connected inform at iotSocketAccept()
-    
+
 		/* Socket Close Only Station Disconnect AP connection */
 		//iotSocketClose(servSock);	//acquire socket and try others
-		//servSock = -1; 
+		//servSock = -1;
 
     /* Give Back Address Memory List Only Station Disconnect AP connection */
     //example: freeAddrXXX(servSock);
 
     printf("Setup_TCPServer_Socket() success\r\n");
 	}
-	
+
 	return servSock;
 }
-
-/*-----------------------------------------------------------*/
+/* ----------------------------------------------------------------------------------------------------*/

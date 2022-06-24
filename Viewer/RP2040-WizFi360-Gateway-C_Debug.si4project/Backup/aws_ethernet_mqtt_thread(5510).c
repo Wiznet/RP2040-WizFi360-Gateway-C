@@ -47,9 +47,10 @@
 #define MQTT_PUB_PERIOD (1000 * 1) // 10 seconds
 
 /* AWS IoT */
-#define MQTT_DOMAIN "account-specific-prefix-ats.iot.ap-northeast-2.amazonaws.com"
+//#define MQTT_DOMAIN "account-specific-prefix-ats.iot.ap-northeast-2.amazonaws.com"
+#define MQTT_DOMAIN "a36anwbdj0b0kz-ats.iot.ap-northeast-2.amazonaws.com"
 #define MQTT_PUB_TOPIC "$aws/things/example_rp2040_mqtt/shadow/update"
-#define MQTT_SUB_TOPIC "$aws/things/example_rp2040_mqtt/shadow/update/accepted"
+#define MQTT_SUB_TOPIC "$aws/things/exampe_rp2040_mqtt/shadow/update/accepted"
 
 #define MQTT_USERNAME NULL
 #define MQTT_PASSWORD NULL
