@@ -160,17 +160,17 @@ foreach(AWS_IOT_DEVICE_SDK_EMBEDDED_C_COREHTTP_PATCH IN LISTS AWS_IOT_DEVICE_SDK
 	)
 endforeach()
 
-# ARM CMSIS WIFI Driver patch
-message("submodules WiFi WizFi360 driver initialised")
+# CMSIS-Driver patch
+message("submodules CMSIS-Driver initialised")
 
-file(GLOB CMSIS_DRIVER_WIFI_WIZFI360_PATCHES 
-	"${RP2040_WIFI360_GATEWAY_C_PATCH_DIR}/03_wifi_wizfi360_added_func_for_server.patch"
+file(GLOB CMSIS_DRIVER_PATCHES 
+	"${RP2040_WIFI360_GATEWAY_C_PATCH_DIR}/03_cmsis_driver_wifi_wizfi360_added_func_for_server.patch"
 	)
 
-foreach(CMSIS_DRIVER_WIFI_WIZFI360_PATCH IN LISTS CMSIS_DRIVER_WIFI_WIZFI360_PATCHES)
-	message("Running patch ${CMSIS_DRIVER_WIFI_WIZFI360_PATCH}")
+foreach(CMSIS_DRIVER_PATCH IN LISTS CMSIS_DRIVER_PATCHES)
+	message("Running patch ${CMSIS_DRIVER_PATCH}")
 	execute_process(
-		COMMAND ${GIT_EXECUTABLE} apply --ignore-whitespace ${CMSIS_DRIVER_WIFI_WIZFI360_PATCH}
+		COMMAND ${GIT_EXECUTABLE} apply --ignore-whitespace ${CMSIS_DRIVER_PATCH}
 		WORKING_DIRECTORY ${CMSIS_DRIVER_SRC_DIR}
 	)
 endforeach()
