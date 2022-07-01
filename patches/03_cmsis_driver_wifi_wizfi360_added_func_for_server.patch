@@ -1,27 +1,5 @@
-diff --git a/WiFi/WizFi360/BufList/BufList.c b/WiFi/WizFi360/BufList/BufList.c
-index 0069c62..b659937 100644
---- a/WiFi/WizFi360/BufList/BufList.c
-+++ b/WiFi/WizFi360/BufList/BufList.c
-@@ -738,7 +738,7 @@ int32_t BufFindByte (uint8_t data, BUF_LIST *p) {
- 
- /*
-   Find the first occurence of a data sequence in the list buffer and return its offset from current position.
--  
-+
-   num   number of bytes from data to compare
- */
- int32_t BufFind (const uint8_t *data, uint32_t num, BUF_LIST *p) {
-@@ -809,7 +809,7 @@ int32_t BufFind (const uint8_t *data, uint32_t num, BUF_LIST *p) {
- 
- /*
-   Compare string with buffered data
--  
-+
-   \note Does not move buffer pointers
- */
- int32_t BufCompareString (const char *string, uint32_t offs, BUF_LIST *p) {
 diff --git a/WiFi/WizFi360/WiFi_WizFi360.c b/WiFi/WizFi360/WiFi_WizFi360.c
-index 714c233..bb49db9 100644
+index 714c233..431803d 100644
 --- a/WiFi/WizFi360/WiFi_WizFi360.c
 +++ b/WiFi/WizFi360/WiFi_WizFi360.c
 @@ -53,6 +53,19 @@
@@ -75,15 +53,7 @@ index 714c233..bb49db9 100644
    int32_t ex;
    uint8_t  n;
    uint32_t conn_id, len;
-@@ -272,6 +296,7 @@ void AT_Notify (uint32_t event, void *arg) {
-       ex = AT_Resp_CtrlConn (&conn_id);
- 
-       if (ex == 0) {
-+        //WizFi360, NOT use SYSMSG_CUR => use <link_id>, CONNECT
-         /* Set connection id as used */
-         ConnId_Accept (conn_id);
- 
-@@ -365,14 +390,21 @@ void AT_Notify (uint32_t event, void *arg) {
+@@ -365,14 +389,21 @@ void AT_Notify (uint32_t event, void *arg) {
    else if (event == AT_NOTIFY_STATION_CONNECTED) {
      /* Station connects to the local AP */
      ex = AT_Resp_StaMac (mac);
@@ -109,17 +79,7 @@ index 714c233..bb49db9 100644
    }
    else if (event == AT_NOTIFY_CONNECTED) {
      /* Local station connected to an AP */
-@@ -791,7 +823,7 @@ static int32_t ARM_WIFI_PowerControl (ARM_POWER_STATE state) {
-           if (ex == 0) {
-             /* Configure system messages */
-             ex = AT_Cmd_SysMessages (3U);
--
-+            //WizFi360, AT+SYSMSG_CUR is Not now supported on WizF360
-             if (ex == 0) {
-               /* Wait until response arrives */
-               ex = WiFi_Wait (WIFI_WAIT_RESP_GENERIC, WIFI_RESP_TIMEOUT);
-
-@@ -1773,7 +1805,8 @@ static int32_t ARM_WIFI_Activate (uint32_t interface, const ARM_WIFI_CONFIG_t *c
+@@ -1773,7 +1804,8 @@ static int32_t ARM_WIFI_Activate (uint32_t interface, const ARM_WIFI_CONFIG_t *c
                ap_cfg.ecn = config->security;
  
                /* Optional parameters, set default values */
@@ -129,7 +89,7 @@ index 714c233..bb49db9 100644
                ap_cfg.ssid_hide = 0; //(0:default)
  
                ex = AT_Cmd_ConfigureAP (AT_CMODE_SET, &ap_cfg);
-@@ -1781,7 +1814,9 @@ static int32_t ARM_WIFI_Activate (uint32_t interface, const ARM_WIFI_CONFIG_t *c
+@@ -1781,7 +1813,9 @@ static int32_t ARM_WIFI_Activate (uint32_t interface, const ARM_WIFI_CONFIG_t *c
  
              case 2:
                /* Set access point MAC (must be different from station) */
@@ -140,14 +100,13 @@ index 714c233..bb49db9 100644
                break;
  
              case 3:
-
-@@ -2560,6 +2595,17 @@ static int32_t ARM_WIFI_SocketAccept (int32_t socket, uint8_t *ip, uint32_t *ip_
+@@ -2560,6 +2594,17 @@ static int32_t ARM_WIFI_SocketAccept (int32_t socket, uint8_t *ip, uint32_t *ip_
                        Socket[n].l_port = conn.local_port;
                      }
                    }
 +#if WIZFI360_CMSIS_ADD
-+/* 
-+* WizFi360 modified 
++/*
++* WizFi360 modified
 +* ARM WIFI DRIVER Bug Fix.
 +* to update multii client connection
 +*/
@@ -159,7 +118,7 @@ index 714c233..bb49db9 100644
                  }
                  while (ex > 0);
                }
-@@ -2579,13 +2625,21 @@ static int32_t ARM_WIFI_SocketAccept (int32_t socket, uint8_t *ip, uint32_t *ip_
+@@ -2579,13 +2624,21 @@ static int32_t ARM_WIFI_SocketAccept (int32_t socket, uint8_t *ip, uint32_t *ip_
  
            /* Return socket number */
            rval = n;
@@ -182,8 +141,7 @@ index 714c233..bb49db9 100644
          }
          else {
            /* No connection to accept */
-
-@@ -4645,3 +4699,102 @@ static void ConnId_Free  (uint32_t conn_id) {
+@@ -4645,3 +4698,102 @@ static void ConnId_Free  (uint32_t conn_id) {
  static void ConnId_Accept (uint32_t conn_id) {
    pCtrl->conn_id |= (1U << conn_id);
  }
@@ -233,7 +191,7 @@ index 714c233..bb49db9 100644
 +      {
 +        c++;
 +        if (c >= 5)
-+        { 
++        {
 +          memset(ConnSta[i].conn_mac, 0x00, 6U);
 +          memset(ConnSta[i].conn_ip, 0x00, 4U);
 +        }
@@ -271,23 +229,23 @@ index 714c233..bb49db9 100644
 +    {
 +      if(LinkedMac[i][j] != macAddr[j])
 +      {
-+      	break;
++       break;
 +      }
 +      else
 +      {
 +        c++;
 +        if (c >= 5)
 +        {
-+        	memset(LinkedMac[i], 0x00, 6U);
++           memset(LinkedMac[i], 0x00, 6U);
 +        }
-+      	continue;
++        continue;
 +      }
 +    }
 +  }
 + }
 +
 diff --git a/WiFi/WizFi360/WiFi_WizFi360.h b/WiFi/WizFi360/WiFi_WizFi360.h
-index ea0dc45..0ccb570 100644
+index ea0dc45..15efca7 100644
 --- a/WiFi/WizFi360/WiFi_WizFi360.h
 +++ b/WiFi/WizFi360/WiFi_WizFi360.h
 @@ -41,7 +41,8 @@
@@ -300,12 +258,7 @@ index ea0dc45..0ccb570 100644
  #endif
  
  /* Socket accept timeout */
-@@ -52,11 +53,13 @@
- /* WiFi thread pooling interval [ms] */
- #ifndef WIFI_THREAD_POOLING_TIMEOUT
- #define WIFI_THREAD_POOLING_TIMEOUT (20)
--#endif 
-+#endif
+@@ -56,7 +57,9 @@
  
  /* Access point default channel (used when channel not specified in Activate) */
  #ifndef WIFI_AP_CHANNEL
@@ -340,7 +293,7 @@ index ea0dc45..0ccb570 100644
  static int32_t  SetupCommunication (void);
  static int32_t  LoadOptions        (void);
 diff --git a/WiFi/WizFi360/WizFi360.c b/WiFi/WizFi360/WizFi360.c
-index 270d1cb..14d4ef1 100644
+index 270d1cb..049cf4d 100644
 --- a/WiFi/WizFi360/WizFi360.c
 +++ b/WiFi/WizFi360/WizFi360.c
 @@ -31,6 +31,10 @@
@@ -396,8 +349,7 @@ index 270d1cb..14d4ef1 100644
    CMD_ECHO        = 0xFD, /* Command Echo                 */
    CMD_TEST        = 0xFE, /* AT startup (empty command)   */
    CMD_UNKNOWN     = 0xFF  /* Unknown or unhandled command */
- 
-@@ -460,6 +476,13 @@ void AT_Parser_Execute (void) {
+@@ -460,6 +475,13 @@ void AT_Parser_Execute (void) {
              /* Station disconnected from local AP (+STA_DISCONNECTED:<sta_mac>) */
              AT_Notify (AT_NOTIFY_STATION_DISCONNECTED, NULL);
            }
@@ -411,8 +363,7 @@ index 270d1cb..14d4ef1 100644
            else if (pCb->resp_code != CMD_UNKNOWN) {
              /* Command response (+XXX in buffer) */
              pCb->state = AT_STATE_ANALYZE;
-
-@@ -1326,6 +1353,56 @@ int32_t AT_Resp_StaMac (uint8_t mac[]) {
+@@ -1326,6 +1348,56 @@ int32_t AT_Resp_StaMac (uint8_t mac[]) {
    return (val);
  }
  
@@ -469,7 +420,7 @@ index 270d1cb..14d4ef1 100644
  /**
    Get ERR_CODE:0x... response.
  
-@@ -2998,10 +3075,13 @@ int32_t AT_Resp_ListIP (uint8_t ip[], uint8_t mac[]) {
+@@ -2998,10 +3070,13 @@ int32_t AT_Resp_ListIP (uint8_t ip[], uint8_t mac[]) {
    char *p;
  
    a = 0U;
@@ -484,12 +435,12 @@ index 270d1cb..14d4ef1 100644
  
      if (val < 0) {
        break;
-@@ -3014,13 +3094,14 @@ int32_t AT_Resp_ListIP (uint8_t ip[], uint8_t mac[]) {
+@@ -3014,11 +3089,13 @@ int32_t AT_Resp_ListIP (uint8_t ip[], uint8_t mac[]) {
  
        if (a == 0) {
          /* Parse IP address (xxx.xxx.xxx.xxx) */
 -        AT_Parse_IP (p, ip);
-+        //AT_Parse_IP (p, ip);        
++        //AT_Parse_IP (p, ip);
 +        AT_Parse_IP_2 (p, ip); //WizFi360: 2 offset because of two null char of CMSIS Driver, bug
        }
        else {
@@ -498,12 +449,9 @@ index 270d1cb..14d4ef1 100644
 +        //AT_Parse_MAC (p, mac);
 +        AT_Parse_MAC_2 (p, mac); //WizFi360: 2 offset because of two null char of CMSIS Driver, bug
        }
--
-       /* Increment number of arguments */
-       a++;
-     }
  
-@@ -3832,3 +3912,54 @@ static void AT_Parse_MAC (char *buf, uint8_t mac[]) {
+       /* Increment number of arguments */
+@@ -3832,3 +3909,54 @@ static void AT_Parse_MAC (char *buf, uint8_t mac[]) {
    mac[4] = (uint8_t)strtoul (&p[1], &p, 16);
    mac[5] = (uint8_t)strtoul (&p[1], &p, 16);
  }
@@ -559,7 +507,7 @@ index 270d1cb..14d4ef1 100644
 +}
 +
 diff --git a/WiFi/WizFi360/WizFi360.h b/WiFi/WizFi360/WizFi360.h
-index 7960ffd..b84abe2 100644
+index 7960ffd..3b23ea6 100644
 --- a/WiFi/WizFi360/WizFi360.h
 +++ b/WiFi/WizFi360/WizFi360.h
 @@ -72,6 +72,8 @@
