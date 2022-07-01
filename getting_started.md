@@ -2,6 +2,8 @@
 
 These sections will guide you through a series of steps from configuring development environment to running WizFi360 Gateway IoT examples using the **WIZnet's Wi-Fi** and **Ethernet** Products.
 
+![][link-gateway_intro]
+
 - [Getting Started with WizFi360 Gateway IoT Examples]
   - [Development environment configuration](#development-environment-configuration)
   - [Hardware requirements](#hardware-requirements)
@@ -154,6 +156,7 @@ Please refer to 'README.md' in each example directory to find detail guide for t
 Link
 -->
 
+[link-gateway_intro]: https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/blob/main/static/images/getting_started/gateway_intro.png
 [link-getting_started_with_raspberry_pi_pico]: https://datasheets.raspberrypi.org/pico/getting-started-with-pico.pdf
 [link-rp2040]: https://www.raspberrypi.org/products/rp2040/
 [link-wizfi360]: https://docs.wiznet.io/Product/Wi-Fi-Module/WizFi360
