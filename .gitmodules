@@ -25,3 +25,6 @@
 [submodule "libraries/ioLibrary_Driver"]
 	path = libraries/ioLibrary_Driver
 	url = https://github.com/Wiznet/ioLibrary_Driver.git
+[submodule "libraries/coreJSON"]
+	path = libraries/coreJSON
+	url = https://github.com/FreeRTOS/coreJSON.git
