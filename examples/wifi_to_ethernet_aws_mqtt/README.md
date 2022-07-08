@@ -34,7 +34,7 @@ For more information on AWS IoT, refer to the document below.
 
 To test the Connect AWS IoT through MQTT example, minor settings shall be done in code.
 
-1. Setup Wi-Fi configuration in 'socket_startup.c' in 'RP2040-WizFi360-Gateway-C/examples/aws_mqtt_demo/' directory.
+1. Setup Wi-Fi configuration in 'socket_startup.c' in 'RP2040-WizFi360-Gateway-C/examples/wifi_to_ethernet_aws_mqtt/' directory.
 
 Setup the Wi-Fi network information you use.
 
@@ -46,10 +46,10 @@ Setup the Wi-Fi network information you use.
 ```
 
 2. Setup AWS IoT configuration.
-
+?
 MQTT_DOMAIN should be setup as AWS IoT data endpoint, and MQTT_USERNAME and MQTT_PASSWORD do not need to be setup. Setup MQTT_CLIENT_ID same as thing created during AWS IoT Core setup.
 
-AWS IoT configuration can be set in 'iot_demo.c' in 'RP2040-WizFi360-Gateway-C/examples/aws_mqtt_demo/' directory.
+AWS IoT configuration can be set in 'iot_demo.c' in 'RP2040-WizFi360-Gateway-C/examples/wifi_to_ethernet_aws_mqtt/' directory.
 
 ```cpp
 /* AWS IoT */
@@ -67,7 +67,7 @@ You must enter the root certificate, client certificate and private key that wer
 
 Root certificate uses the RSA 2048 bit key, Amazon Root CA 1, and does not use the public key.
 
-Device certificate and key can be set in 'mqtt_certificate.h' in 'RP2040-WizFi360-Gateway-C/examples/aws_mqtt_demo/' directory.
+Device certificate and key can be set in 'mqtt_certificate.h' in 'RP2040-WizFi360-Gateway-C/examples/wifi_to_ethernet_aws_mqtt/' directory.
 
 ```cpp
 uint8_t mqtt_root_ca[] =
@@ -86,6 +86,28 @@ uint8_t mqtt_private_key[] =
 "-----END RSA PRIVATE KEY-------\r\n";
 ```
 
+4. Descriptions for this example.
+
+1) aws_ethernet_mqtt_thread.c : make ethernet run and  mqtt connect/yield/transport to AWS. MQTT Tx. buffer size is set to 2048 bytes and Rx. buffer size is 1024.
+
+2) Tx. mqtt runs at aws_ethernet_mqtt_thread.c by pollinng but Rx. mqtt(mqtt_event_callback()) is called back at mqtt_transport_interface.c by event driven.
+
+3) All of the recive and send data for client are excuted at wifi_tcp_ap_thread.c.
+
+4) publish format
+  {
+      "mac": "48:60:5F:2F:76:C8",
+      "publish message": "aws subscribe to topic"
+  }
+  Publish format is set up at ThreadHandleClient() in wifi_tcp_ap_thread.c. You can modified at aws_ethernet_mqtt_thread.c
+
+5) subscribe format:
+  {
+      "mac": "48:60:5F:2F:76:C8",
+      "publish message": "aws publish to topic"
+  }
+  The key "mac" is used to find client for the event to send "aws publish to topic" maessage.
+  You have to match AWS Sever and mqtt_event_callback()'s data format.
 
 
 ## Step 5: Build

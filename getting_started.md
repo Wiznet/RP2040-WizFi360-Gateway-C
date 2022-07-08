@@ -67,7 +67,7 @@ Libraries are located in the '**RP2040-WizFi360-Gateway-C/libraries/**' director
 - [**aws-iot-device-sdk-embedded-C**][link-aws-iot-device-sdk-embedded-c]
 - [**pico-sdk**][link-pico-sdk]
 - [**pico-extras**][link-pico-extras]
-
+- [**coreJSON**][link-coreJSON]
 If you want to modify the code that MCU-dependent and use a MCU other than **RP2040**, you can modify it in the **RP2040-WizFi360-Gateway-C/port/** directory.
 
 - [**FreeRTOS-Kernel**][link-port_freertos-kernel]
@@ -179,6 +179,7 @@ Link
 [link-port_iolibrary_driver]: https://github.com/Wiznet/RP2040-HAT-AWS-C/tree/main/port/ioLibrary_Driver
 [link-pico-sdk]: https://github.com/raspberrypi/pico-sdk
 [link-pico-extras]: https://github.com/raspberrypi/pico-extras
+[link-coreJSON]: https://github.com/FreeRTOS/coreJSON
 [link-port_freertos-kernel]: https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/tree/main/port/FreeRTOS-Kernel
 [link-port_rte]: https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/tree/main/port/RTE
 [link-port_wizfi360]: https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/tree/main/port/WizFi360
