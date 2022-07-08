@@ -10,6 +10,7 @@
  * ----------------------------------------------------------------------------------------------------
  */
 #include <string.h>
+#include <ctype.h>
 
 #include "pico/stdlib.h"
 
@@ -19,6 +20,9 @@
 #include "dns_interface.h"
 #include "timer_interface.h"
 #include "util.h"
+
+#include "core_mqtt_config.h"
+#include "core_json.h"
 
 /**
  * ----------------------------------------------------------------------------------------------------
@@ -32,6 +36,7 @@
  * ----------------------------------------------------------------------------------------------------
  */
 /* Connection informaion */
+uint8_t g_mqttSock = 0;
 NetworkContext_t g_network_context;
 TransportInterface_t g_transport_interface;
 mqtt_config_t g_mqtt_config;
@@ -39,13 +44,100 @@ mqtt_config_t g_mqtt_config;
 /* SSL context pointer */
 tlsContext_t *g_mqtt_tls_context_ptr;
 
+extern uint8_t g_mqtt_sub_msg_buf[MQTT_BUF_COUNT][MQTT_BUF_MAX_SIZE / 2];
+extern uint8_t LinkedMac[5][6];
+
 /**
  * ----------------------------------------------------------------------------------------------------
  * Functions
  * ----------------------------------------------------------------------------------------------------
  */
+
+/**
+  Conver ASCII type of  MAC address to Array type of MAC address.
+*/
+static uint8_t convert_macaddr(uint8_t * macstr, uint8_t * digitstr, uint8_t * mac)
+{
+    uint8_t tmp_mac[6];
+    uint8_t tmp_hexstr[4];
+    uint8_t i = 0;
+    uint8_t len = strlen((char *)macstr);
+
+    if(macstr[0] == 0)
+        return 0;
+    for( i = 0; i < 6; i++)
+    {
+        memcpy(tmp_hexstr,macstr+i*3,3);
+        tmp_hexstr[2] = 0;
+        if(is_hexstr(tmp_hexstr))
+        {
+            str_to_hex(tmp_hexstr, &tmp_mac[i]);
+        }
+        else
+        {
+            printf("2nd if \r\n");
+            return 0;
+        }
+
+    }
+    memcpy(mac, tmp_mac, sizeof(tmp_mac));
+    return 1;
+}
+
+
+/**
+  find MAC address by mac address query key.
+*/
+static int mqtt_find_clientsocket(char * mqtt_querry_key, uint8_t size)
+{
+  int i, j, c, ret  = 0;
+  char * mac_addr;
+  char * mac;
+  char * d = ".:-";
+  char mac_ascii[17];
+  uint8_t mac_arr[6]={0, };
+
+  memcpy(mac_ascii, mqtt_querry_key, sizeof(char)*17U);
+  ret = convert_macaddr(mac_ascii, d, mac_arr);
+
+  for(i=0;i<5;i++)
+  {
+    c = 0;
+    for(j=0; j<6; j++)
+    {
+      if(LinkedMac[i][j] != mac_arr[j])
+      {
+       break;
+      }
+      else
+      {
+        c++;
+        if (c >= 5)
+        {
+           return i;
+        }
+        continue;
+      }
+    }
+  }
+  return 0;
+ }
+
 void mqtt_event_callback(MQTTContext_t *pContext, MQTTPacketInfo_t *pPacketInfo, MQTTDeserializedInfo_t *pDeserializedInfo)
 {
+    JSONStatus_t result;
+    char * mqtt_data;
+    char query_mac_key[]="mac";
+    char query_data_key[]="publish message";
+
+    size_t queryMacLen = strlen(query_mac_key);
+    size_t queryDataLen = strlen(query_data_key);
+    uint8_t * mac_out_value;
+    size_t mac_valueLen;
+    uint8_t * data_out_value;
+    size_t data_valueLen;
+    uint8_t n;
+
     /* Handle incoming publish. The lower 4 bits of the publish packet
      * type is used for the dup, QoS, and retain flags. Hence masking
      * out the lower bits to check if the packet is publish. */
@@ -54,9 +146,37 @@ void mqtt_event_callback(MQTTContext_t *pContext, MQTTPacketInfo_t *pPacketInfo,
         /* Handle incoming publish. */
         if (pDeserializedInfo->pPublishInfo->payloadLength)
         {
+            printf("### MQTT Subscribe Event Callback !!! ###\r\n");
             printf("%.*s,%d,%.*s\n", pDeserializedInfo->pPublishInfo->topicNameLength, pDeserializedInfo->pPublishInfo->pTopicName,
                    pDeserializedInfo->pPublishInfo->payloadLength,
                    pDeserializedInfo->pPublishInfo->payloadLength, pDeserializedInfo->pPublishInfo->pPayload);
+            mqtt_data = pDeserializedInfo->pPublishInfo->pPayload;
+            result = JSON_Validate(mqtt_data, strlen(mqtt_data));
+            if(result == JSONSuccess)
+            {
+                printf("JSON_Validate: JSON_Search\r\n");
+                result =  JSON_Search(mqtt_data, strlen(mqtt_data), query_mac_key, queryMacLen, &mac_out_value, &mac_valueLen);
+                if(result == JSONSuccess)
+                {
+                    printf("JSON_Search: JSON_Search\r\n");
+                    uint8_t sockIndex = mqtt_find_clientsocket(mac_out_value, mac_valueLen);
+                    if(sockIndex != 0)
+                    {
+                        g_mqttSock = sockIndex;
+                        n  = sockIndex - 1;
+
+                        result =  JSON_Search(mqtt_data, strlen(mqtt_data), query_data_key, queryDataLen, &data_out_value, &data_valueLen);
+                        if(result == JSONSuccess)
+                        {
+                            memcpy(g_mqtt_sub_msg_buf[n], data_out_value, data_valueLen);
+                        }
+                    }
+                    else
+                    {
+                        printf("No Link Connected MQTT Client to Subscribe the Topic\r\n");
+                    }
+                }
+            }
         }
     }
     else

@@ -69,12 +69,13 @@ static wiz_NetInfo g_net_info = {
         .dns = {8, 8, 8, 8},                         // DNS server
         .dhcp = NETINFO_DHCP                         // DHCP
 };
-        
+
 static uint8_t g_ethernet_buf[ETHERNET_BUF_MAX_SIZE] = { 0, }; // common buffer
 
 /* MQTT */
 static uint8_t g_mqtt_buf[MQTT_BUF_MAX_SIZE] = { 0, };
 uint8_t g_mqtt_pub_msg_buf[MQTT_BUF_COUNT][MQTT_BUF_MAX_SIZE] = { 0, };
+uint8_t g_mqtt_sub_msg_buf[MQTT_BUF_COUNT][MQTT_BUF_MAX_SIZE / 2] = { 0, };
 
 /* SSL */
 tlsContext_t g_mqtt_tls_context;
@@ -113,7 +114,7 @@ int ETHERNET_MQTT_thread()
     wizchip_reset();
     wizchip_initialize();
     wizchip_check();
-    
+
     wizchip_1ms_timer_initialize(repeating_timer_callback);
 
     if (g_net_info.dhcp == NETINFO_DHCP) // DHCP
@@ -141,7 +142,7 @@ int ETHERNET_MQTT_thread()
     g_mqtt_tls_context.root_ca = mqtt_root_ca;
     g_mqtt_tls_context.client_cert = mqtt_client_cert;
     g_mqtt_tls_context.private_key = mqtt_private_key;
-	
+
     retval = mqtt_transport_init(true, MQTT_CLIENT_ID, NULL, NULL, MQTT_DEFAULT_KEEP_ALIVE);
 
     if (retval != 0)
@@ -189,12 +190,12 @@ int ETHERNET_MQTT_thread()
         tick_end = millis();
         if (tick_end > tick_start + MQTT_PUB_PERIOD)
         {
-            tick_start = millis();			
+            tick_start = millis();
             n = g_clientSock - 1; //buffer index
 
             // Check Client Socket Number and Data is not empty
             // Send: Choose index by Client Socket Number - 1 --> Data {{Data},{Data},{Data},{Data}}
-            // Reset: Reset Data buffer by index (Client Socket Number - 1) 
+            // Reset: Reset Data buffer by index (Client Socket Number - 1)
             if (strlen(&g_mqtt_pub_msg_buf[n]) != 0)
             {
                 printf("# mqtt_buf data is %s # \r\n",&g_mqtt_pub_msg_buf[n]);
@@ -208,7 +209,7 @@ int ETHERNET_MQTT_thread()
 /* ----------------------------------------------------------------------------------------------------
  * Functions
 /*----------------------------------------------------------------------------------------------------*/
- 
+
 /* Clock */
 static void set_clock_khz(void)
 {

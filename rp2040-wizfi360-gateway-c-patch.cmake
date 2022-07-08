@@ -57,6 +57,14 @@ if(EXISTS "${CMSIS_FREERTOS_SRC_DIR}/.git")
 	message("CMSIS-FreeRTOS cleaned")
 endif()
 
+# Delete untracked files in pico-sdk
+if(EXISTS "${COREJSON_DIR}/.git")
+	message("cleaning coreJSON...")
+	execute_process(COMMAND ${GIT_EXECUTABLE} -C ${COREJSON_DIR} clean -fdx)
+	execute_process(COMMAND ${GIT_EXECUTABLE} -C ${COREJSON_DIR} reset --hard)
+	message("coreJSON cleaned")
+endif()
+
 # Delete untracked files in IoT_Socket
 if(EXISTS "${IOT_SOCKET_SRC_DIR}/.git")
 	message("cleaning IoT_Socket...")
@@ -140,7 +148,7 @@ file(GLOB CMSIS_FREERTOS_PATCHES
 foreach(CMSIS_FREERTOS_PATCHES IN LISTS CMSIS_FREERTOS_PATCHES)
 	message("Running patch ${CMSIS_FREERTOS_PATCHES}")
 	execute_process(
-		COMMAND ${GIT_EXECUTABLE} apply ${CMSIS_FREERTOS_PATCHES}
+		COMMAND ${GIT_EXECUTABLE}  apply --ignore-whitespace ${CMSIS_FREERTOS_PATCHES}
 		WORKING_DIRECTORY ${CMSIS_FREERTOS_SRC_DIR}
 	)
 endforeach()

@@ -31,6 +31,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE
         WIZFI360_DRIVER_FILES 
         IOT_SOCKET_FILES
         AWS_SDK_PORT_FILES
+        COREJSON_FILES
         )
 
 pico_enable_stdio_usb(${TARGET_NAME} 0)

@@ -58,7 +58,8 @@ extern uint8_t Server_ip[4];    //declared at wifi_socket_startup.c
 extern uint8_t g_mqtt_pub_msg_buf[MQTT_BUF_COUNT][MQTT_BUF_MAX_SIZE];  //declared at aws_wifi_ethernet_mqtt.c
 extern uint8_t LinkedMac[5][6];  //Client's mac addr connected to Server, [clients are max 4]x[mac address size], index 0(for server) is not available to map socket index
 extern CONNECTED_MAC_IP_s ConnSta[];  //Connected Station's mac address, not a link connection
-
+extern uint8_t g_mqtt_sub_msg_buf[MQTT_BUF_COUNT][MQTT_BUF_MAX_SIZE / 2];
+extern uint8_t g_mqttSock;
 
 /* ----------------------------------------------------------------------------------------------------
  * Access Point Thread and Function
@@ -114,7 +115,7 @@ void * WIFI_TCP_AP_thread()
           threadArgs->clientSock = sockDsc;
           id = NULL;
         	g_clientSock = sockDsc;
-        	
+
         	/* create client thread for each Number of client socket descriptor */
           id = osThreadNew(ThreadHandleClient(threadArgs), NULL, &client_thread_attr);
           if(id == NULL)
@@ -177,6 +178,16 @@ static void *ThreadHandleClient(void *threadArgs)
       	LinkedMac[clientSock][3],LinkedMac[clientSock][4],LinkedMac[clientSock][5], g_iot_rcv_buf);
     }
   }
+
+  if((g_mqttSock != 0) && (g_mqttSock == clientSock))
+  {
+    if(strlen(&g_mqtt_sub_msg_buf[n]) != 0)
+    {
+      printf("iotSocketSend data is %s \r\n", g_mqtt_sub_msg_buf[n]);
+      numBytesSnd = iotSocketSend(clientSock, g_mqtt_sub_msg_buf[n], MQTT_BUF_MAX_SIZE / 2);
+      memset(g_mqtt_sub_msg_buf[n], 0x00, MQTT_BUF_MAX_SIZE / 2);
+    }
+  }
   /*close client socket when AT_Notify STA_DISCONNECTED and DISCONNECT */
   //iotSocketClose(clientSock);
   //osThreadExit();
@@ -211,7 +222,7 @@ static int Accept_TCP_Connection(int servSock)
 	  for(clientsockD = 1; clientsockD < MAXPENDING+1; clientsockD++)
 		{
 		  ret = iotSocketSetOpt ((uint8_t)clientsockD, IOT_SOCKET_SO_RCVTIMEO, &timeOut, sizeof(timeOut));
-    }    
+    }
     update_linked_mac();  //mapping mac address to link connected client socket
 
     /* print Server and Client Socket information */

@@ -290,3 +290,14 @@ target_link_libraries(IOT_SOCKET_FILES PRIVATE
         CMSIS_FREERTOS_FILES
         WIZFI360_FILES
 )
+
+include(${COREJSON_DIR}/jsonFilePaths.cmake)
+add_library(COREJSON_FILES STATIC)
+
+target_sources(COREJSON_FILES PUBLIC
+        ${JSON_SOURCES}
+        )
+
+target_include_directories(COREJSON_FILES PUBLIC
+        ${JSON_INCLUDE_PUBLIC_DIRS}
+        )

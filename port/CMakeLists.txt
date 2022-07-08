@@ -86,4 +86,5 @@ target_link_libraries(AWS_SDK_PORT_FILES PUBLIC
         mbedtls
         WIZFI360_FILES
         IOT_SOCKET_FILES
+        COREJSON_FILES
         )

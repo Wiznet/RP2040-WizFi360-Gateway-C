@@ -85,6 +85,12 @@ if(NOT DEFINED IOT_SOCKET_DIR)
     message(STATUS "IOT_SOCKET_DIR = ${IOT_SOCKET_DIR}")
 endif()
 
+if(NOT DEFINED COREJSON_DIR)
+    set(COREJSON_DIR ${CMAKE_SOURCE_DIR}/libraries/coreJSON)
+    message(STATUS "COREJSON_DIR = ${COREJSON_DIR}")
+endif()
+
+
 # Turn off mbedtls test mode 
 set(ENABLE_PROGRAMS OFF CACHE BOOL "Build mbedtls programs")
 set(ENABLE_TESTING OFF CACHE BOOL "Build mbedtls testing")
