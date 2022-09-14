@@ -5,17 +5,17 @@ These sections will guide you through a series of steps from configuring develop
 ![][link-gateway_intro]
 
 - [Getting Started with WizFi360 Gateway IoT Examples]
-  - [Development environment configuration](#development-environment-configuration)
-  - [Hardware requirements](#hardware-requirements)
-  - [WizFi360 Gateway IoT example structure](#wizfi360-gateway-iot-example-structure)
-  - [WizFi360 Gateway IoT example testing](#wizfi360-gateway-iot-example-testing)
+    - [Development environment configuration](#development-environment-configuration)
+    - [Hardware requirements](#hardware-requirements)
+    - [WizFi360 Gateway IoT example structure](#wizfi360-gateway-iot-example-structure)
+    - [WizFi360 Gateway IoT example testing](#wizfi360-gateway-iot-example-testing)
 
 
 
 <a name="development_environment_configuration"></a>
 ## Development environment configuration
 
-To test the WizFi360 AWS IoT examples, the development environment must be configured to use WizFi360-EVB-Pico.
+To test the WizFi360 Gateway IoT examples, the development environment must be configured to use WizFi360-EVB-Pico, W5x00-EVB-Pico.
 
 The WizFi360 Gateway IoT examples were tested by configuring the development environment for **Windows**. Please refer to the '**9.2. Building on MS Windows**' section of '**Getting started with Raspberry Pi Pico**' document below and configure accordingly.
 
@@ -28,7 +28,7 @@ The WizFi360 Gateway IoT examples were tested by configuring the development env
 <a name="hardware_requirements"></a>
 ## Hardware requirements
 
-The WizFi360 Gateway IoT examples use [**WizFi360**][link-wizfi360] - and W5x00-EVB_Pico Ethernet I/O module built on [**RP2040**][link-rp2040] and WIZnet's [**W5500**][link-w5500] and [**W5100S**][link-w5100S] Ethernet module.
+The WizFi360 Gateway IoT examples use [**WizFi360**][link-wizfi360] and W5x00-EVB-Pico - ethernet I/O module built on [**RP2040**][link-rp2040] and WIZnet's [**W5500**][link-w5500] or [**W5100S**][link-w5100S] ethernet chip.
 
 - [**W5500-EVB-Pico**][link-w5500-evb-pico]
 - [**W5100S-EVB-Pico**][link-w5100s-evb-pico]
@@ -123,7 +123,7 @@ git apply ../../../../../../patches/01_cmsis_freertos_cmsis_os2.patch
 
 ```cpp
 /* Change directory */
-// change to the 'coreHTTP' library directory inside the 'aws-iot-device-sdk-embedded-C' library directory.
+// change to the 'coreHTTP' library directory inside the 'aws-iot-device-sdk-embedded-C' library directory
 cd [user path]/WizFi360-EVB-Pico-AWS-C/libraries/aws-iot-device-sdk-embedded-C/libraries/standard/coreHTTP
 
 // e.g.
@@ -133,19 +133,20 @@ cd D:/RP2040/RP2040-WizFi360-Gateway-C/libraries/aws-iot-device-sdk-embedded-C/l
 git apply --ignore-whitespace ../../../../../patches/02_aws_iot_device_sdk_embedded_c_corehttp_network_interface.patch
 ```
 
-- CMSIS-DRIVER
+- CMSIS-Driver
 
 ```cpp
 /* Change directory */
-// change to the 'coreHTTP' library directory inside the 'aws-iot-device-sdk-embedded-C' library directory.
-cd [user path]/RP2040-WizFi360-Gateway-C/libraries/CMSIS-DRIVER
+// change to the 'CMSIS-Driver' library directory
+cd [user path]/RP2040-WizFi360-Gateway-C/libraries/CMSIS-Driver
 
 // e.g.
-cd D:/RP2040/RP2040-WizFi360-Gateway-C/libraries/CMSIS-DRIVER
+cd D:/RP2040/RP2040-WizFi360-Gateway-C/libraries/CMSIS-Driver
 
 /* Patch */
-git apply --ignore-whitespace ../../patches/03_wifi_wizfi360_added_func_for_server.patch
+git apply --ignore-whitespace ../../patches/03_cmsis_driver_wifi_wizfi360_added_func_for_server.patch
 ```
+
 3. Test
 
 Please refer to 'README.md' in each example directory to find detail guide for testing RP2040-WizFi360-Gateway-C examples.
@@ -186,4 +187,3 @@ Link
 [link-port_mbedtls]: https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/tree/main/port/mbedtls
 [link-port_aws_iot_device_sdk_embedded_c]: https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/tree/main/port/aws-iot-device-sdk-embedded-C
 [link-port_timer]: https://github.com/Wiznet/RP2040-WizFi360-Gateway-C/tree/main/port/timer
-
